@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#ipconfig getifaddr en0
-
 # 🔹 Google 스프레드시트 CSV URL
 SPREADSHEET_URL="https://docs.google.com/spreadsheets/d/1m7fqg2Oh_c79fBjknDctl3FmGN97q0IafHm0YbnwwbU/gviz/tq?tqx=out:csv"
 
@@ -43,29 +41,31 @@ echo "       "
 echo " press /help to get information"
 echo "==================================="
 
-# 🔹 메시지 수신을 백그라운드에서 무한 루프로 실행
+# 🔹 메시지 수신을 계속 실행 (출력과 입력 분리)
 while true; do
-    nc -l $PORT >> messages.log &  # 수신된 메시지를 파일에 저장
-    tail -f messages.log | while read line; do
+    nc -l $PORT | while read line; do
         SENDER=$(echo "$line" | cut -d '|' -f1)  # 발신자 이름 추출
         MESSAGE=$(echo "$line" | cut -d '|' -f2-)  # 메시지 내용 추출
+
+        # 🔹 현재 입력 커서 위치 저장
+        tput sc
+        echo ""  # 줄바꿈하여 기존 입력 줄과 분리
         echo -e "\033[1;34m[$SENDER] $MESSAGE\033[0m"  # 파란색 텍스트로 표시
+        # 🔹 이전 커서 위치 복원 후 입력줄 다시 표시
+        tput rc
+        tput ed  # 커서 아래 텍스트 지우기
+        echo -n "> "
     done
-done &
+done &  # 백그라운드 실행
 
 # 🔹 메시지 입력 & 송신
 while true; do
     echo -n "> "
     read message
     if [ "$message" == "/change" ]; then
-        echo "Chosse person..."
+        echo "Choose person..."
         get_user_input  # 상대방을 변경하려면 이름을 다시 묻도록
-        clear
-        echo "==================================="
-        echo "💬  Terminal Chat - $USER_NAME ($SERVER_IP) "
-        echo "       "
-        echo " press /help to get information"
-        echo "==================================="
+        echo "Ready!"
         continue
     fi
     if [ -n "$message" ]; then
