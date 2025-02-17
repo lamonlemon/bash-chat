@@ -43,11 +43,14 @@ echo "       "
 echo " press /help to get information"
 echo "==================================="
 
-# 🔹 메시지 수신을 백그라운드에서 실행
-nc -l $PORT | while read line; do
-    SENDER=$(echo "$line" | cut -d '|' -f1)  # 발신자 이름 추출
-    MESSAGE=$(echo "$line" | cut -d '|' -f2-)  # 메시지 내용 추출
-    echo -e "\033[1;34m[$SENDER] $MESSAGE\033[0m"  # 파란색 텍스트로 표시
+# 🔹 메시지 수신을 백그라운드에서 무한 루프로 실행
+while true; do
+    nc -l $PORT >> messages.log &  # 수신된 메시지를 파일에 저장
+    tail -f messages.log | while read line; do
+        SENDER=$(echo "$line" | cut -d '|' -f1)  # 발신자 이름 추출
+        MESSAGE=$(echo "$line" | cut -d '|' -f2-)  # 메시지 내용 추출
+        echo -e "\033[1;34m[$SENDER] $MESSAGE\033[0m"  # 파란색 텍스트로 표시
+    done
 done &
 
 # 🔹 메시지 입력 & 송신
@@ -57,9 +60,15 @@ while true; do
     if [ "$message" == "/change" ]; then
         echo "Chosse person..."
         get_user_input  # 상대방을 변경하려면 이름을 다시 묻도록
-        echo "Ready!"
+        clear
+        echo "==================================="
+        echo "💬  Terminal Chat - $USER_NAME ($SERVER_IP) "
+        echo "       "
+        echo " press /help to get information"
+        echo "==================================="
         continue
-    else
+    fi
+    if [ -n "$message" ]; then
         # 'change'가 아니면 메시지를 보냄
         echo -e "\033[1;32m[$MY_NAME] $message\033[0m"  # 초록색 텍스트로 표시
         echo "$MY_NAME|$message" | nc $SERVER_IP $PORT  # 발신자 이름 포함해서 전송
